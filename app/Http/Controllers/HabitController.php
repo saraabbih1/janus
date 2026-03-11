@@ -3,47 +3,69 @@
 namespace App\Http\Controllers;
 
 use App\Models\Habit;
-use Illuminate\Http\Request;
+use App\Http\Requests\DeleteHabitRequest;
+use App\Http\Requests\IndexHabitsRequest;
+use App\Http\Requests\ShowHabitRequest;
+use App\Http\Requests\StoreHabitRequest;
+use App\Http\Requests\UpdateHabitRequest;
 
 class HabitController extends Controller
 {
-    // CREATE
-    public function store(Request $request)
+    public function index(IndexHabitsRequest $request)
     {
-        $habit = Habit::create([
-            'user_id' => auth()->id(),
-            'title' => $request->title,
-            'description' => $request->description,
-            'frequency' => $request->frequency,
-            'target_days' => $request->target_days
+        $habits = $request->user()
+            ->habits()
+            ->when($request->has('active'), function ($query) use ($request) {
+                $query->where('is_active', filter_var($request->query('active'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE));
+            })
+            ->latest('id')
+            ->get();
+
+        return $this->successResponse([
+            'habits' => $habits,
         ]);
-
-        return response()->json($habit);
     }
 
-    // READ
-    public function index()
+    public function store(StoreHabitRequest $request)
     {
-        return Habit::all();
+        $habit = $request->user()->habits()->create($request->validated());
+
+        return $this->successResponse([
+            'habit' => $habit,
+        ], 'Operation successful', 201);
     }
 
-    // UPDATE
-    public function update(Request $request, $id)
+    public function show(ShowHabitRequest $request, int $id)
     {
-        $habit = Habit::findOrFail($id);
+        $habit = $this->findUserHabit($request->user()->id, $id);
 
-        $habit->update($request->all());
-
-        return response()->json($habit);
-    }
-
-    // DELETE
-    public function destroy($id)
-    {
-        Habit::destroy($id);
-
-        return response()->json([
-            "message" => "Habit deleted"
+        return $this->successResponse([
+            'habit' => $habit,
         ]);
+    }
+
+    public function update(UpdateHabitRequest $request, int $id)
+    {
+        $habit = $this->findUserHabit($request->user()->id, $id);
+        $habit->update($request->validated());
+
+        return $this->successResponse([
+            'habit' => $habit->fresh(),
+        ]);
+    }
+
+    public function destroy(DeleteHabitRequest $request, int $id)
+    {
+        $habit = $this->findUserHabit($request->user()->id, $id);
+        $habit->delete();
+
+        return $this->successResponse($this->emptyObject());
+    }
+
+    private function findUserHabit(int $userId, int $habitId): Habit
+    {
+        return Habit::query()
+            ->where('user_id', $userId)
+            ->findOrFail($habitId);
     }
 }
