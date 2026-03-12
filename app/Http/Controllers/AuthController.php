@@ -19,7 +19,7 @@ class AuthController extends Controller
         return $this->successResponse([
             'user' => $user,
             'token' => $token,
-        ], 'Operation successful', 201);
+        ], 'Opération réussie', 201);
     }
 
     public function login(LoginRequest $request)
@@ -27,7 +27,7 @@ class AuthController extends Controller
         $user = User::query()->where('email', $request->string('email'))->first();
 
         if (! $user || ! Hash::check($request->string('password')->toString(), $user->password)) {
-            return $this->errorResponse($this->emptyObject(), 'Invalid credentials', 401);
+            return $this->errorResponse($this->emptyObject(), 'Erreur', 401);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
