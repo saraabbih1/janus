@@ -13,8 +13,7 @@ class HabitController extends Controller
 {
     public function index(IndexHabitsRequest $request)
     {
-        $habits = $request->user()
-            ->habits()
+        $habits = $request->user()->habits()
             ->when($request->has('active'), function ($query) use ($request) {
                 $query->where('is_active', filter_var($request->query('active'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE));
             })
@@ -28,11 +27,12 @@ class HabitController extends Controller
 
     public function store(StoreHabitRequest $request)
     {
-        $habit = $request->user()->habits()->create($request->validated());
+        $incomingFields = $request->validated();
+        $habit = Habit::create($incomingFields);
 
         return $this->successResponse([
             'habit' => $habit,
-        ], 'Operation successful', 201);
+        ], 'Opération réussie', 201);
     }
 
     public function show(ShowHabitRequest $request, int $id)
