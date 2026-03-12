@@ -21,7 +21,7 @@ class HabitLogController extends Controller
         if ($exists) {
             return $this->errorResponse([
                 'habit' => ['Cannot log the same habit twice on the same day.'],
-            ], 'Validation error', 422);
+            ], 'Erreur', 422);
         }
 
         $log = $habit->logs()->create([
@@ -31,7 +31,7 @@ class HabitLogController extends Controller
 
         return $this->successResponse([
             'log' => $log,
-        ], 'Operation successful', 201);
+        ], 'Opération réussie', 201);
     }
 
     public function index(IndexHabitLogsRequest $request, int $id)
