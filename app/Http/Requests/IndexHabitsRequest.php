@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class IndexHabitsRequest extends FormRequest
 {
@@ -14,7 +15,10 @@ class IndexHabitsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'active' => ['nullable', 'boolean'],
+            'active' => [
+                'nullable',
+                Rule::in(['true', 'false', '1', '0', 1, 0, true, false]),
+            ],
         ];
     }
 }
