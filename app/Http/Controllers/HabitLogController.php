@@ -6,35 +6,33 @@ use App\Http\Requests\DeleteHabitLogRequest;
 use App\Http\Requests\IndexHabitLogsRequest;
 use App\Http\Requests\StoreHabitLogRequest;
 use App\Models\Habit;
-use App\Models\HabitLog;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 
 class HabitLogController extends Controller
 {
-    public function store(StoreHabitLogRequest $request, int $id)
+    public function store(StoreHabitLogRequest $request, int $id): JsonResponse
     {
         $habit = $this->findUserHabit($request->user()->id, $id);
         $today = Carbon::today()->toDateString();
 
-        $exists = $habit->logs()->whereDate('date', $today)->exists();
-
-        if ($exists) {
+        if ($habit->logs()->whereDate('date', $today)->exists()) {
             return $this->errorResponse([
                 'habit' => ['Cannot log the same habit twice on the same day.'],
             ], 'Erreur', 422);
         }
 
         $log = $habit->logs()->create([
-            'note' => $request->validated('note'),
+            'note' => $request->validated()['note'] ?? null,
             'date' => $today,
         ]);
 
         return $this->successResponse([
             'log' => $log,
-        ], 'Opération réussie', 201);
+        ], 'Operation reussie', 201);
     }
 
-    public function index(IndexHabitLogsRequest $request, int $id)
+    public function index(IndexHabitLogsRequest $request, int $id): JsonResponse
     {
         $habit = $this->findUserHabit($request->user()->id, $id);
         $logs = $habit->logs()->latest('date')->latest('id')->get();
@@ -44,7 +42,7 @@ class HabitLogController extends Controller
         ]);
     }
 
-    public function destroy(DeleteHabitLogRequest $request, int $id, int $logId)
+    public function destroy(DeleteHabitLogRequest $request, int $id, int $logId): JsonResponse
     {
         $habit = $this->findUserHabit($request->user()->id, $id);
         $log = $habit->logs()->findOrFail($logId);
