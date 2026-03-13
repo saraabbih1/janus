@@ -20,20 +20,24 @@ class HabitController extends Controller
             ->latest('id')
             ->get();
 
-        return $this->successResponse([
-            'habits' => $habits,
-        ]);
+        // return $this->successResponse([
+        //     'habits' => $habits,
+        // ]);
+        return response()->json([$data=[$habits],"message"=>"succes"],201);
     }
 
-    public function store(StoreHabitRequest $request)
-    {
-        $incomingFields = $request->validated();
-        $habit = Habit::create($incomingFields);
+   public function store(StoreHabitRequest $request)
+{
+    $incomingFields = $request->validated();
 
-        return $this->successResponse([
-            'habit' => $habit,
-        ], 'Opération réussie', 201);
-    }
+    $incomingFields['user_id'] = $request->user()->id;
+
+    $habit = $request->user()->habits()->create($incomingFields);
+
+    return $this->successResponse([
+        'habit' => $habit,
+    ], 'Opération réussie', 201);
+}
 
     public function show(ShowHabitRequest $request, int $id)
     {
