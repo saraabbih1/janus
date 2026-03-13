@@ -7,18 +7,21 @@ use App\Http\Requests\OverviewStatsRequest;
 use App\Models\Habit;
 use App\Models\HabitLog;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 
 class StatsController extends Controller
 {
-    public function habitStats(HabitStatsRequest $request, int $id)
+    public function habitStats(HabitStatsRequest $request, int $id): JsonResponse
     {
         $habit = $this->findUserHabit($request->user()->id, $id);
         $dates = $this->habitLogDates($habit);
         $streaks = $this->calculateStreaks($dates);
         $lastThirtyDays = Carbon::today()->subDays(29)->toDateString();
         $totalCompletions = $dates->count();
-        $recentCompletions = $dates->filter(fn (Carbon $date) => $date->toDateString() >= $lastThirtyDays)->count();
+        $recentCompletions = $dates
+            ->filter(fn (Carbon $date) => $date->toDateString() >= $lastThirtyDays)
+            ->count();
 
         return $this->successResponse([
             'current_streak' => $streaks['current_streak'],
@@ -28,24 +31,51 @@ class StatsController extends Controller
         ]);
     }
 
-    public function overview(OverviewStatsRequest $request)
+    public function overview(OverviewStatsRequest $request): JsonResponse
     {
         $user = $request->user();
-        $activeHabits = $user->habits()->where('is_active', true)->with('logs:id,habit_id,date')->get();
+        $habits = $user->habits()->with('logs:id,habit_id,date')->get();
+        $activeHabits = $habits->where('is_active', true)->values();
         $today = Carbon::today()->toDateString();
         $lastSevenDays = Carbon::today()->subDays(6)->toDateString();
         $activeHabitCount = $activeHabits->count();
+
         $completedToday = HabitLog::query()
             ->whereHas('habit', fn ($query) => $query->where('user_id', $user->id))
             ->whereDate('date', $today)
             ->count();
+
         $logsLastSevenDays = HabitLog::query()
             ->whereHas('habit', fn ($query) => $query->where('user_id', $user->id))
             ->whereDate('date', '>=', $lastSevenDays)
             ->count();
-        $longestActiveStreak = $activeHabits
-            ->map(fn (Habit $habit) => $this->calculateStreaks($this->habitLogDates($habit))['current_streak'])
-            ->max() ?? 0;
+
+        $habitWithLongestStreak = $habits->reduce(function (?array $best, Habit $habit) {
+            $streaks = $this->calculateStreaks($this->habitLogDates($habit));
+            $candidate = [
+                'id' => $habit->id,
+                'title' => $habit->title,
+                'current_streak' => $streaks['current_streak'],
+                'longest_streak' => $streaks['longest_streak'],
+            ];
+
+            if ($best === null) {
+                return $candidate;
+            }
+
+            if ($candidate['longest_streak'] > $best['longest_streak']) {
+                return $candidate;
+            }
+
+            if (
+                $candidate['longest_streak'] === $best['longest_streak']
+                && $candidate['current_streak'] > $best['current_streak']
+            ) {
+                return $candidate;
+            }
+
+            return $best;
+        });
 
         $completionRate = $activeHabitCount > 0
             ? round(($logsLastSevenDays / ($activeHabitCount * 7)) * 100, 2)
@@ -54,7 +84,7 @@ class StatsController extends Controller
         return $this->successResponse([
             'total_active_habits' => $activeHabitCount,
             'completed_today' => $completedToday,
-            'longest_active_streak' => $longestActiveStreak,
+            'habit_with_longest_streak' => $habitWithLongestStreak ?? $this->emptyObject(),
             'completion_rate_last_7_days' => $completionRate,
         ]);
     }
@@ -85,7 +115,7 @@ class StatsController extends Controller
             ];
         }
 
-        $sortedDates = $dates->sort()->values();
+        $sortedDates = $dates->sortBy(fn (Carbon $date) => $date->timestamp)->values();
         $longestStreak = 1;
         $runningStreak = 1;
 
@@ -93,7 +123,7 @@ class StatsController extends Controller
             $previous = $sortedDates[$index - 1];
             $current = $sortedDates[$index];
 
-            if ($current->diffInDays($previous) === 1) {
+            if (abs($current->diffInDays($previous)) == 1) {
                 $runningStreak++;
                 $longestStreak = max($longestStreak, $runningStreak);
             } else {
@@ -101,10 +131,10 @@ class StatsController extends Controller
             }
         }
 
-        $expectedDate = Carbon::today();
+        $expectedDate = Carbon::today()->startOfDay();
         $currentStreak = 0;
 
-        foreach ($sortedDates->sortDesc() as $date) {
+        foreach ($sortedDates->sortByDesc(fn (Carbon $date) => $date->timestamp) as $date) {
             if ($date->equalTo($expectedDate)) {
                 $currentStreak++;
                 $expectedDate = $expectedDate->copy()->subDay();
