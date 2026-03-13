@@ -1,59 +1,142 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Habits Tracker API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+REST API for a Habits Tracker application built with Laravel 12, PHP 8.2, MySQL, and Laravel Sanctum personal access tokens.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Laravel 12
+- PHP 8.2+
+- MySQL
+- Laravel Sanctum
+- PHPUnit feature tests
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Implemented Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- `POST /api/register`
+- `POST /api/login`
+- `POST /api/logout`
+- `GET /api/me`
+- Full habits CRUD under `/api/habits`
+- Habit logs management under `/api/habits/{id}/logs`
+- Habit stats under `/api/habits/{id}/stats`
+- Dashboard overview under `/api/stats/overview`
+- Unified JSON success and error responses
 
-## Learning Laravel
+## Unified Response Format
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Success:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```json
+{
+  "success": true,
+  "data": {},
+  "message": "Operation reussie"
+}
+```
 
-## Laravel Sponsors
+Error:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```json
+{
+  "success": false,
+  "errors": {},
+  "message": "Erreur"
+}
+```
 
-### Premium Partners
+## Installation
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 1. Create a Laravel 12 project
 
-## Contributing
+```bash
+composer create-project laravel/laravel habits-tracker-api
+cd habits-tracker-api
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 2. Install Sanctum
 
-## Code of Conduct
+```bash
+composer require laravel/sanctum
+php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
+php artisan migrate
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 3. Configure environment
 
-## Security Vulnerabilities
+Update `.env` for MySQL:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```env
+APP_NAME="Habits Tracker API"
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
 
-## License
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=habits_tracker
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Generate the app key:
+
+```bash
+php artisan key:generate
+```
+
+### 4. Run migrations
+
+```bash
+php artisan migrate
+```
+
+### 5. Start the server
+
+```bash
+php artisan serve
+```
+
+API base URL:
+
+```text
+http://127.0.0.1:8000/api
+```
+
+## Sanctum Notes
+
+- Protected routes use `auth:sanctum`
+- Send tokens with `Authorization: Bearer {token}`
+- `bootstrap/app.php` is already configured for API exception JSON formatting
+
+## Testing
+
+Run the automated API tests:
+
+```bash
+php artisan test
+```
+
+## Postman Guide
+
+Detailed endpoint examples, headers, and request bodies are in [docs/postman-examples.md](/c:/Users/pc/Desktop/Janus/docs/postman-examples.md).
+
+## Main API Routes
+
+| Method | Endpoint | Auth | Description |
+| --- | --- | --- | --- |
+| POST | `/api/register` | No | Register a new user |
+| POST | `/api/login` | No | Login and get token |
+| POST | `/api/logout` | Yes | Revoke current token |
+| GET | `/api/me` | Yes | Return authenticated user |
+| GET | `/api/habits` | Yes | List habits, optional `?active=false` |
+| POST | `/api/habits` | Yes | Create habit |
+| GET | `/api/habits/{id}` | Yes | Show habit |
+| PUT | `/api/habits/{id}` | Yes | Update habit |
+| DELETE | `/api/habits/{id}` | Yes | Delete habit |
+| POST | `/api/habits/{id}/logs` | Yes | Create today's log |
+| GET | `/api/habits/{id}/logs` | Yes | List habit logs |
+| DELETE | `/api/habits/{id}/logs/{logId}` | Yes | Delete a log |
+| GET | `/api/habits/{id}/stats` | Yes | Habit statistics |
+| GET | `/api/stats/overview` | Yes | Dashboard overview |
