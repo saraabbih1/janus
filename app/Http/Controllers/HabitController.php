@@ -2,44 +2,40 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Habit;
 use App\Http\Requests\DeleteHabitRequest;
 use App\Http\Requests\IndexHabitsRequest;
 use App\Http\Requests\ShowHabitRequest;
 use App\Http\Requests\StoreHabitRequest;
 use App\Http\Requests\UpdateHabitRequest;
+use App\Models\Habit;
+use Illuminate\Http\JsonResponse;
 
 class HabitController extends Controller
 {
-    public function index(IndexHabitsRequest $request)
+    public function index(IndexHabitsRequest $request): JsonResponse
     {
         $habits = $request->user()->habits()
             ->when($request->has('active'), function ($query) use ($request) {
-                $query->where('is_active', filter_var($request->query('active'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE));
+                $query->where('is_active', $request->boolean('active'));
             })
             ->latest('id')
             ->get();
 
-        // return $this->successResponse([
-        //     'habits' => $habits,
-        // ]);
-        return response()->json([$data=[$habits],"message"=>"succes"],201);
+        return $this->successResponse([
+            'habits' => $habits,
+        ]);
     }
 
-   public function store(StoreHabitRequest $request)
-{
-    $incomingFields = $request->validated();
+    public function store(StoreHabitRequest $request): JsonResponse
+    {
+        $habit = $request->user()->habits()->create($request->validated());
 
-    $incomingFields['user_id'] = $request->user()->id;
+        return $this->successResponse([
+            'habit' => $habit,
+        ], 'Operation reussie', 201);
+    }
 
-    $habit = $request->user()->habits()->create($incomingFields);
-
-    return $this->successResponse([
-        'habit' => $habit,
-    ], 'Opération réussie', 201);
-}
-
-    public function show(ShowHabitRequest $request, int $id)
+    public function show(ShowHabitRequest $request, int $id): JsonResponse
     {
         $habit = $this->findUserHabit($request->user()->id, $id);
 
@@ -48,7 +44,7 @@ class HabitController extends Controller
         ]);
     }
 
-    public function update(UpdateHabitRequest $request, int $id)
+    public function update(UpdateHabitRequest $request, int $id): JsonResponse
     {
         $habit = $this->findUserHabit($request->user()->id, $id);
         $habit->update($request->validated());
@@ -58,7 +54,7 @@ class HabitController extends Controller
         ]);
     }
 
-    public function destroy(DeleteHabitRequest $request, int $id)
+    public function destroy(DeleteHabitRequest $request, int $id): JsonResponse
     {
         $habit = $this->findUserHabit($request->user()->id, $id);
         $habit->delete();
