@@ -8,19 +8,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('test' , function() {
-    return response()->json();
-});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
-    Route::get('/habits', [HabitController::class, 'index']);
-    Route::post('/habits', [HabitController::class, 'store']);
-    Route::get('/habits/{id}', [HabitController::class, 'show']);
-    Route::put('/habits/{id}', [HabitController::class, 'update']);
-    Route::delete('/habits/{id}', [HabitController::class, 'destroy']);
+    Route::apiResource('habits', HabitController::class)->except(['create', 'edit']);
 
     Route::post('/habits/{id}/logs', [HabitLogController::class, 'store']);
     Route::get('/habits/{id}/logs', [HabitLogController::class, 'index']);
